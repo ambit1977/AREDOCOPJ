@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/item.dart';
-import '../services/database_service.dart';
+import '../services/storage_service.dart';
 
 class ItemProvider with ChangeNotifier {
-  final DatabaseService _databaseService = DatabaseService();
+  final StorageService _storageService = StorageService.getInstance();
   final Uuid _uuid = const Uuid();
 
   List<Item> _items = [];
@@ -22,9 +22,9 @@ class ItemProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _items = await _databaseService.getAllItems();
-      _locations = await _databaseService.getAllLocations();
-      _categories = await _databaseService.getAllCategories();
+      _items = await _storageService.getAllItems();
+      _locations = await _storageService.getAllLocations();
+      _categories = await _storageService.getAllCategories();
     } catch (e) {
       debugPrint('Error loading items: $e');
     } finally {
@@ -51,7 +51,7 @@ class ItemProvider with ChangeNotifier {
     );
 
     try {
-      await _databaseService.insertItem(item);
+      await _storageService.insertItem(item);
       await loadItems(); // Reload all data
     } catch (e) {
       debugPrint('Error adding item: $e');
@@ -60,7 +60,7 @@ class ItemProvider with ChangeNotifier {
 
   Future<void> updateItem(Item item) async {
     try {
-      await _databaseService.updateItem(item);
+      await _storageService.updateItem(item);
       await loadItems(); // Reload all data
     } catch (e) {
       debugPrint('Error updating item: $e');
@@ -69,7 +69,7 @@ class ItemProvider with ChangeNotifier {
 
   Future<void> deleteItem(String id) async {
     try {
-      await _databaseService.deleteItem(id);
+      await _storageService.deleteItem(id);
       await loadItems(); // Reload all data
     } catch (e) {
       debugPrint('Error deleting item: $e');
