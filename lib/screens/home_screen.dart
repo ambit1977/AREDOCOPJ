@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/item_provider.dart';
 import '../widgets/item_card.dart';
 import 'add_item_screen.dart';
@@ -16,13 +17,46 @@ class _HomeScreenState extends State<HomeScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  PackageInfo _packageInfo = PackageInfo(
+    appName: '持ち物管理',
+    packageName: 'unknown',
+    version: 'unknown',
+    buildNumber: 'unknown',
+  );
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ItemProvider>().loadItems();
+    debugPrint('HomeScreen: initState開始');
+    
+    try {
+      _tabController = TabController(length: 3, vsync: this);
+      debugPrint('HomeScreen: TabController初期化完了');
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        debugPrint('HomeScreen: PostFrameCallback実行開始');
+        try {
+          context.read<ItemProvider>().loadItems();
+          debugPrint('HomeScreen: アイテムロード開始');
+          _initPackageInfo();
+          debugPrint('HomeScreen: パッケージ情報初期化開始');
+        } catch (e, stackTrace) {
+          debugPrint('HomeScreen PostFrameCallback エラー: $e');
+          debugPrint('スタックトレース: $stackTrace');
+        }
+      });
+      
+      debugPrint('HomeScreen: initState完了');
+    } catch (e, stackTrace) {
+      debugPrint('HomeScreen initState エラー: $e');
+      debugPrint('スタックトレース: $stackTrace');
+    }
+  }
+  
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
     });
   }
 
@@ -39,6 +73,12 @@ class _HomeScreenState extends State<HomeScreen>
       appBar: AppBar(
         title: const Text('持ち物管理'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => _showVersionInfo(context),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(100),
           child: Column(
@@ -192,6 +232,52 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         );
       },
+    );
+  }
+  
+  void _showVersionInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('アプリ情報'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('アプリ名', _packageInfo.appName),
+            const SizedBox(height: 8),
+            _buildInfoRow('バージョン', '${_packageInfo.version}+${_packageInfo.buildNumber}'),
+            const SizedBox(height: 8),
+            _buildInfoRow('パッケージ名', _packageInfo.packageName),
+            const SizedBox(height: 16),
+            const Text('© 2025 持ち物管理アプリ', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        Expanded(
+          child: Text(value),
+        ),
+      ],
     );
   }
 }

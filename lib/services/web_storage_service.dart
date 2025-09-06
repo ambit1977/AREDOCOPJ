@@ -51,4 +51,38 @@ class WebStorageService extends StorageService {
     final items = await getAllItems();
     return items.map((item) => item.category).toSet().toList()..sort();
   }
+  
+  Future<List<String>> getFrequentLocations(int limit) async {
+    final items = await getAllItems();
+    final Map<String, int> locationCounts = {};
+    
+    // 場所ごとの使用回数をカウント
+    for (var item in items) {
+      locationCounts[item.location] = (locationCounts[item.location] ?? 0) + 1;
+    }
+    
+    // 使用頻度順にソート
+    final sortedLocations = locationCounts.keys.toList()
+      ..sort((a, b) => locationCounts[b]!.compareTo(locationCounts[a]!));
+    
+    // 上位limit件を返す
+    return sortedLocations.take(limit).toList();
+  }
+  
+  Future<List<String>> getFrequentCategories(int limit) async {
+    final items = await getAllItems();
+    final Map<String, int> categoryCounts = {};
+    
+    // カテゴリごとの使用回数をカウント
+    for (var item in items) {
+      categoryCounts[item.category] = (categoryCounts[item.category] ?? 0) + 1;
+    }
+    
+    // 使用頻度順にソート
+    final sortedCategories = categoryCounts.keys.toList()
+      ..sort((a, b) => categoryCounts[b]!.compareTo(categoryCounts[a]!));
+    
+    // 上位limit件を返す
+    return sortedCategories.take(limit).toList();
+  }
 }

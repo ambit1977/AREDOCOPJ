@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,20 +14,62 @@ class DatabaseService extends StorageService {
   static Database? _database;
 
   Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+    try {
+      debugPrint('DatabaseService: データベース取得開始');
+      if (_database != null) {
+        debugPrint('DatabaseService: 既存データベース使用');
+        return _database!;
+      }
+      debugPrint('DatabaseService: 新しいデータベース初期化開始');
+      _database = await _initDatabase();
+      debugPrint('DatabaseService: データベース初期化完了');
+      return _database!;
+    } catch (e, stackTrace) {
+      debugPrint('DatabaseService database getter エラー: $e');
+      debugPrint('スタックトレース: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<Database> _initDatabase() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, 'item_manager.db');
-    
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    try {
+      debugPrint('DatabaseService: _initDatabase開始');
+      Directory documentsDirectory = await getApplicationDocumentsDirectory();
+      String path = join(documentsDirectory.path, 'item_manager.db');
+      debugPrint('DatabaseService: データベースパス: $path');
+      
+      // データベースファイルが存在するかチェック
+      bool exists = await File(path).exists();
+      debugPrint('DatabaseService: データベースファイル存在: $exists');
+      
+      // データベース接続を開く
+      debugPrint('DatabaseService: データベース接続開始');
+      final db = await openDatabase(
+        path,
+        version: 1,
+        onCreate: _onCreate,
+        // データベース接続のパフォーマンスを向上
+        singleInstance: true,
+      );
+      
+      debugPrint('DatabaseService: データベース接続成功');
+      
+      // 接続が成功したが、テーブルが存在しない場合の対策
+      if (!exists) {
+        debugPrint('DatabaseService: 新規データベース - テーブル存在確認');
+        // 明示的にテーブル作成を確認
+        final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+        if (tables.isEmpty || !tables.any((table) => table['name'] == 'items')) {
+          await _onCreate(db, 1);
+        }
+      }
+      
+      return db;
+    } catch (e) {
+      print('データベース初期化エラー: $e');
+      // 致命的なエラーの場合は再スロー
+      rethrow;
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -116,6 +159,34 @@ class DatabaseService extends StorageService {
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       'SELECT DISTINCT category FROM items ORDER BY category',
     );
+    
+    return maps.map((map) => map['category'] as String).toList();
+  }
+  
+  // 使用頻度の高い場所を取得（新しく追加）
+  Future<List<String>> getFrequentLocations(int limit) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT location, COUNT(*) as count 
+      FROM items 
+      GROUP BY location 
+      ORDER BY count DESC, updatedAt DESC
+      LIMIT ?
+    ''', [limit]);
+    
+    return maps.map((map) => map['location'] as String).toList();
+  }
+  
+  // 使用頻度の高いカテゴリを取得（新しく追加）
+  Future<List<String>> getFrequentCategories(int limit) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT category, COUNT(*) as count 
+      FROM items 
+      GROUP BY category 
+      ORDER BY count DESC, updatedAt DESC
+      LIMIT ?
+    ''', [limit]);
     
     return maps.map((map) => map['category'] as String).toList();
   }

@@ -1,14 +1,123 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/item.dart';
 import '../providers/item_provider.dart';
+import '../services/camera_service.dart';
+import '../screens/edit_item_screen.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
 
   const ItemCard({super.key, required this.item});
+
+  Widget _buildImage({required double width, required double height, BoxFit fit = BoxFit.cover}) {
+    if (item.imagePath == null) {
+      return Container(
+        width: width,
+        height: height,
+        color: Colors.grey[300],
+        child: const Icon(
+          Icons.inventory,
+          color: Colors.grey,
+        ),
+      );
+    }
+
+    // 画像読み込みエラー時の表示
+    Widget errorContainer = Container(
+      width: width,
+      height: height,
+      color: Colors.grey[300],
+      child: const Icon(
+        Icons.image_not_supported,
+        color: Colors.grey,
+      ),
+    );
+
+    try {
+      // Web版ではBase64形式、モバイル版ではファイルパス
+      if (kIsWeb && item.imagePath!.startsWith('data:image')) {
+        // Base64画像の場合
+        try {
+          final String base64String = item.imagePath!.split(',')[1];
+          final Uint8List bytes = base64Decode(base64String);
+          return Image.memory(
+            bytes,
+            width: width,
+            height: height,
+            fit: fit,
+            // メモリキャッシュを使用してパフォーマンス向上
+            cacheWidth: width.isFinite && width > 0 ? (width * 2).toInt() : null,
+            gaplessPlayback: true, // 画像読み込み中に前の画像を表示し続ける
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('Base64画像読み込みエラー: $error');
+              return errorContainer;
+            },
+          );
+        } catch (e) {
+          debugPrint('Base64デコードエラー: $e');
+          return errorContainer;
+        }
+      } else {
+        // ファイルパスの場合（モバイル版）
+        // 動的にパスを解決するFutureBuilderを使用
+        return FutureBuilder<String>(
+          future: CameraService.getImagePath(item.imagePath!),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300],
+                child: const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              );
+            }
+            
+            if (snapshot.hasError) {
+              debugPrint('画像パス解決エラー: ${snapshot.error}');
+              return errorContainer;
+            }
+            
+            if (!snapshot.hasData) {
+              debugPrint('画像パスデータなし');
+              return errorContainer;
+            }
+            
+            final String fullPath = snapshot.data!;
+            final file = File(fullPath);
+            
+            return Image.file(
+              file,
+              width: width,
+              height: height,
+              fit: fit,
+              // メモリキャッシュを使用してパフォーマンス向上
+              cacheWidth: width.isFinite && width > 0 ? (width * 2).toInt() : null,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stackTrace) {
+                debugPrint('画像ファイル読み込みエラー: $error, パス: $fullPath');
+                return errorContainer;
+              },
+            );
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('画像表示処理エラー: $e');
+      return errorContainer;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,27 +136,7 @@ class ItemCard extends StatelessWidget {
                 child: SizedBox(
                   width: 60,
                   height: 60,
-                  child: item.imagePath != null
-                      ? Image.file(
-                          File(item.imagePath!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[300],
-                              child: const Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey,
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.inventory,
-                            color: Colors.grey,
-                          ),
-                        ),
+                  child: _buildImage(width: 60, height: 60),
                 ),
               ),
               const SizedBox(width: 12),
@@ -140,23 +229,9 @@ class ItemCard extends StatelessWidget {
               if (item.imagePath != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(item.imagePath!),
-                    width: double.infinity,
+                  child: _buildImage(
+                    width: 300, // 固定幅に変更
                     height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey,
-                          size: 50,
-                        ),
-                      );
-                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -183,6 +258,13 @@ class ItemCard extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('閉じる'),
+          ),
+          TextButton(
+            onPressed: () => _navigateToEditScreen(context),
+            child: const Text(
+              '編集',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -242,5 +324,37 @@ class ItemCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _navigateToEditScreen(BuildContext context) async {
+    try {
+      // 詳細ダイアログを閉じる
+      Navigator.pop(context);
+      
+      // 編集画面に遷移
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditItemScreen(item: item),
+        ),
+      );
+      
+      // 編集が完了した場合、リストを更新
+      if (result == true && context.mounted) {
+        context.read<ItemProvider>().loadItems();
+      }
+    } catch (e, stackTrace) {
+      debugPrint('編集画面への遷移エラー: $e');
+      debugPrint('スタックトレース: $stackTrace');
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('編集画面を開けませんでした: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

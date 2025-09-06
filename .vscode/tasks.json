@@ -13,6 +13,81 @@
 				"$flutter"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Flutter Run macOS",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"macos"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter Run macOS Test",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"macos"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter Clean",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"clean"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Flutter Devices Check",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"devices"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Flutter Clean Complete",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"clean"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Flutter Test iOS Fix",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"macos"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "build"
 		}
 	]
 }
