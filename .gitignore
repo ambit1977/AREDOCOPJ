@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 環境変数とAPIキー (セキュリティ)
+.env
+.env.local
+.env.development
+.env.production
+*.key
+api_keys.dart
+secrets.dart
+
+# macOS特有
+.DS_Store

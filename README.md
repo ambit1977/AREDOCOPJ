@@ -49,6 +49,28 @@
 
 ### 💾 データ管理
 - SQLiteでローカルデータベース管理
+- データは端末内に安全に保存
+- アプリ再起動後もデータ永続化
+
+### 🤖 AI自動認識機能 (オプション)
+- Google Gemini APIによる画像解析
+- アイテム名、カテゴリ、収納場所の自動提案
+- 極限まで簡単なアイテム登録を実現
+
+#### AI機能セットアップ (オプション)
+1. [Google AI Studio](https://makersuite.google.com/app/apikey) でAPIキーを取得
+2. プロジェクトルートに `.env` ファイルを作成:
+   ```
+   GEMINI_API_KEY=your_actual_api_key_here
+   ```
+3. または `lib/config/api_keys.dart` を編集:
+   ```dart
+   class ApiKeys {
+     static const String geminiApiKey = 'your_actual_api_key_here';
+   }
+   ```
+
+**⚠️ セキュリティ注意**: APIキーは絶対にGitリポジトリにコミットしないでください
 - 安定したデータベース初期化
 - アプリ内で完結（クラウド同期なし）
 - エラー回復機能

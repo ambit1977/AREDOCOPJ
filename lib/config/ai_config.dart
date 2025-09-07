@@ -3,13 +3,14 @@ class AIConfig {
   // Gemini APIキー（本番環境では環境変数から読み込む）
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: 'AIzaSyCieXCJoOb2_GxlQkaSykihEYRu6d0hb8E', // 実際のAPIキー
+    defaultValue: '', // デフォルトは空文字（セキュリティのため）
   );
   
   /// APIキーが正しく設定されているかチェック
   static bool get isApiKeyConfigured => 
-      geminiApiKey != 'YOUR_GEMINI_API_KEY' && 
-      geminiApiKey.isNotEmpty;
+      geminiApiKey.isNotEmpty && 
+      geminiApiKey != 'YOUR_NEW_API_KEY_HERE' &&
+      geminiApiKey != 'your_actual_api_key_here';
   
   /// テストモード（モックデータを使用）かどうか
   static bool get isTestMode => !isApiKeyConfigured;
