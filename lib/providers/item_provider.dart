@@ -69,6 +69,7 @@ class ItemProvider with ChangeNotifier {
             category: item.category,
             location: item.location,
             imagePath: fileName,
+            description: item.description, // 説明フィールドを保持
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
           );
@@ -113,6 +114,7 @@ class ItemProvider with ChangeNotifier {
     required String category,
     required String location,
     String? imagePath,
+    String? description, // 説明パラメータを追加
   }) async {
     final now = DateTime.now();
     final item = Item(
@@ -121,6 +123,7 @@ class ItemProvider with ChangeNotifier {
       category: category,
       location: location,
       imagePath: imagePath,
+      description: description, // 説明フィールドを設定
       createdAt: now,
       updatedAt: now,
     );
@@ -166,5 +169,92 @@ class ItemProvider with ChangeNotifier {
           item.category.toLowerCase().contains(lowercaseQuery) ||
           item.location.toLowerCase().contains(lowercaseQuery);
     }).toList();
+  }
+
+  /// AI分析結果に基づいて最も近い既存カテゴリを提案
+  String findBestMatchingCategory(String aiSuggestedCategory) {
+    if (_categories.isEmpty) return aiSuggestedCategory;
+    
+    final lowercaseAI = aiSuggestedCategory.toLowerCase();
+    
+    // 完全一致
+    for (final category in _categories) {
+      if (category.toLowerCase() == lowercaseAI) {
+        return category;
+      }
+    }
+    
+    // 部分一致
+    for (final category in _categories) {
+      if (category.toLowerCase().contains(lowercaseAI) || 
+          lowercaseAI.contains(category.toLowerCase())) {
+        return category;
+      }
+    }
+    
+    // 類似カテゴリのマッピング
+    final categoryMappings = {
+      '電子機器': ['電子製品', 'デジタル', 'ガジェット', 'デバイス'],
+      '衣類': ['洋服', '服', 'ファッション', 'アパレル'],
+      'キッチン用品': ['調理器具', '食器', '台所用品', 'キッチン'],
+      '本・書類': ['書籍', '文書', '資料', '本'],
+      '文房具': ['ステーショナリー', '事務用品', '筆記用具'],
+      'その他': ['雑貨', 'その他の物'],
+    };
+    
+    for (final entry in categoryMappings.entries) {
+      if (entry.value.any((synonym) => 
+          synonym.toLowerCase().contains(lowercaseAI) || 
+          lowercaseAI.contains(synonym.toLowerCase()))) {
+        return entry.key;
+      }
+    }
+    
+    // マッチしない場合は元の提案を返す
+    return aiSuggestedCategory;
+  }
+
+  /// AI分析結果に基づいて最も近い既存収納場所を提案
+  String findBestMatchingLocation(String aiSuggestedLocation) {
+    if (_locations.isEmpty) return aiSuggestedLocation;
+    
+    final lowercaseAI = aiSuggestedLocation.toLowerCase();
+    
+    // 完全一致
+    for (final location in _locations) {
+      if (location.toLowerCase() == lowercaseAI) {
+        return location;
+      }
+    }
+    
+    // 部分一致
+    for (final location in _locations) {
+      if (location.toLowerCase().contains(lowercaseAI) || 
+          lowercaseAI.contains(location.toLowerCase())) {
+        return location;
+      }
+    }
+    
+    // 類似場所のマッピング
+    final locationMappings = {
+      'クローゼット': ['クロゼット', 'ワードローブ', '衣装室'],
+      'デスク': ['机', 'デスクトップ', '作業台'],
+      'キッチン': ['台所', '厨房'],
+      '本棚': ['書棚', 'ブックシェルフ'],
+      '引き出し': ['ドロワー', 'ドロアー'],
+      'リビング': ['居間', 'リビングルーム'],
+      '寝室': ['ベッドルーム', '部屋'],
+    };
+    
+    for (final entry in locationMappings.entries) {
+      if (entry.value.any((synonym) => 
+          synonym.toLowerCase().contains(lowercaseAI) || 
+          lowercaseAI.contains(synonym.toLowerCase()))) {
+        return entry.key;
+      }
+    }
+    
+    // マッチしない場合は元の提案を返す
+    return aiSuggestedLocation;
   }
 }

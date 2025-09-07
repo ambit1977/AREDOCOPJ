@@ -1,9 +1,11 @@
+import '../config/api_keys.dart';
+
 /// AI機能の設定クラス
 class AIConfig {
-  // Gemini APIキー（本番環境では環境変数から読み込む）
+  // Gemini APIキー（ローカルファイルまたは環境変数から読み込む）
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: '', // デフォルトは空文字（セキュリティのため）
+    defaultValue: ApiKeys.geminiApiKey, // ローカルファイルのキーを使用
   );
   
   /// APIキーが正しく設定されているかチェック

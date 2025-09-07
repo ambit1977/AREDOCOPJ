@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/item_provider.dart';
 import '../services/camera_service.dart';
+import '../services/ai_service.dart'; // AI サービスをインポート
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({super.key});
@@ -19,12 +20,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _nameController = TextEditingController();
   final _categoryController = TextEditingController();
   final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController(); // 説明フィールドのコントローラーを追加
   final CameraService _cameraService = CameraService();
+  final AIService _aiService = AIService(); // AI サービスのインスタンス
 
   String? _selectedImagePath;
   bool _isLoading = false;
   bool _isLoadingCategories = false;
   bool _isLoadingLocations = false;
+  bool _isAnalyzingImage = false; // AI分析中のフラグ
 
   @override
   void initState() {
@@ -37,7 +41,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _nameController.dispose();
     _categoryController.dispose();
     _locationController.dispose();
-    // フォーカスノードは削除
+    _descriptionController.dispose(); // 説明コントローラーも破棄
     super.dispose();
   }
 
@@ -56,6 +60,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
             category: _categoryController.text.trim(),
             location: _locationController.text.trim(),
             imagePath: _selectedImagePath,
+            description: _descriptionController.text.trim().isNotEmpty 
+                ? _descriptionController.text.trim() 
+                : null, // 説明フィールドを追加
           );
 
       if (mounted) {
@@ -87,9 +94,83 @@ class _AddItemScreenState extends State<AddItemScreen> {
           setState(() {
             _selectedImagePath = imagePath;
           });
+          
+          // 画像選択後、すぐにAI分析を実行
+          _analyzeImageWithAI();
         }
       },
     );
+  }
+
+  /// AI画像分析を実行してフィールドを自動入力
+  Future<void> _analyzeImageWithAI() async {
+    if (_selectedImagePath == null) return;
+
+    setState(() {
+      _isAnalyzingImage = true;
+    });
+
+    try {
+      // 画像ファイルを取得
+      File imageFile;
+      if (_selectedImagePath!.contains('/')) {
+        // 完全パスの場合
+        imageFile = File(_selectedImagePath!);
+      } else {
+        // ファイル名のみの場合、完全パスを取得
+        final fullPath = await CameraService.getImagePath(_selectedImagePath!);
+        imageFile = File(fullPath);
+      }
+
+      if (!await imageFile.exists()) {
+        throw Exception('画像ファイルが見つかりません');
+      }
+
+      // AI分析を実行
+      final analysisResult = await _aiService.analyzeItemFromImage(imageFile);
+      
+      if (mounted) {
+        final itemProvider = context.read<ItemProvider>();
+        
+        // AI結果を既存データと比較して最適な候補を選択
+        final bestCategory = itemProvider.findBestMatchingCategory(analysisResult.category);
+        final bestLocation = itemProvider.findBestMatchingLocation(analysisResult.location);
+        
+        setState(() {
+          // フィールドに自動入力
+          _nameController.text = analysisResult.name;
+          _categoryController.text = bestCategory;
+          _locationController.text = bestLocation;
+          _descriptionController.text = analysisResult.description;
+        });
+
+        // AI分析完了の通知
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'AI分析完了！${analysisResult.isReliable ? '高精度' : '推定'}で情報を入力しました',
+            ),
+            backgroundColor: analysisResult.isReliable ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('AI分析エラー: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAnalyzingImage = false;
+        });
+      }
+    }
   }
   
   // カテゴリ選択ダイアログを表示
@@ -498,35 +579,68 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   height: 200,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.grey,
+                      color: _isAnalyzingImage ? Colors.blue : Colors.grey,
                       style: BorderStyle.solid,
-                      width: 2,
+                      width: _isAnalyzingImage ? 3 : 2,
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: _selectedImagePath != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: _buildImagePreview(),
-                        )
-                      : const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.camera_alt,
-                              size: 50,
-                              color: Colors.grey,
+                  child: Stack(
+                    children: [
+                      // 画像表示部分
+                      _selectedImagePath != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: _buildImagePreview(),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  '写真を撮影または選択',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 16),
-                            Text(
-                              '写真を撮影または選択',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
+                      
+                      // AI分析中のオーバーレイ
+                      if (_isAnalyzingImage)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'AI分析中...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -617,6 +731,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   return null;
                 },
                 onTap: _showLocationSelectionDialog,
+              ),
+              const SizedBox(height: 16),
+
+              // Description field (説明フィールドを追加)
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'アイテムの説明 (任意)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.description),
+                  hintText: 'アイテムの詳細や特徴を記入',
+                ),
+                maxLines: 3,
+                minLines: 1,
               ),
               const SizedBox(height: 32),
 

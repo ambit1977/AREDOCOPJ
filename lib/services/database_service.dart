@@ -46,8 +46,9 @@ class DatabaseService extends StorageService {
       debugPrint('DatabaseService: データベース接続開始');
       final db = await openDatabase(
         path,
-        version: 1,
+        version: 2, // バージョンを2に更新
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade, // アップグレード処理を追加
         // データベース接続のパフォーマンスを向上
         singleInstance: true,
       );
@@ -80,10 +81,21 @@ class DatabaseService extends StorageService {
         category TEXT NOT NULL,
         location TEXT NOT NULL,
         imagePath TEXT,
+        description TEXT,
         createdAt INTEGER NOT NULL,
         updatedAt INTEGER NOT NULL
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint('DatabaseService: データベースアップグレード $oldVersion -> $newVersion');
+    
+    if (oldVersion < 2) {
+      // descriptionカラムを追加
+      await db.execute('ALTER TABLE items ADD COLUMN description TEXT');
+      debugPrint('DatabaseService: descriptionカラムを追加しました');
+    }
   }
 
   Future<int> insertItem(Item item) async {

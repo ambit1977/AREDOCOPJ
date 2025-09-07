@@ -4,6 +4,7 @@ class Item {
   final String category;
   final String location;
   final String? imagePath;
+  final String? description; // アイテムの説明フィールドを追加
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +14,7 @@ class Item {
     required this.category,
     required this.location,
     this.imagePath,
+    this.description, // 説明フィールドを追加
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +26,7 @@ class Item {
       'category': category,
       'location': location,
       'imagePath': imagePath,
+      'description': description, // 説明フィールドをマップに追加
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
     };
@@ -36,6 +39,7 @@ class Item {
       category: map['category'],
       location: map['location'],
       imagePath: map['imagePath'],
+      description: map['description'], // 説明フィールドをマップから読み取り
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt']),
     );
@@ -47,6 +51,7 @@ class Item {
     String? category,
     String? location,
     String? imagePath,
+    String? description, // 説明フィールドをcopyWithに追加
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -56,6 +61,7 @@ class Item {
       category: category ?? this.category,
       location: location ?? this.location,
       imagePath: imagePath ?? this.imagePath,
+      description: description ?? this.description, // 説明フィールドのcopyWith対応
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
