@@ -28,5 +28,13 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>アイテムの写真を選択するために写真ライブラリへのアクセスが必要です</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>アイテムの画像ファイルを選択するためにデスクトップフォルダへのアクセスが必要です</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>アイテムの画像ファイルを選択するためにドキュメントフォルダへのアクセスが必要です</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>アイテムの画像ファイルを選択するためにダウンロードフォルダへのアクセスが必要です</string>
 </dict>
 </plist>

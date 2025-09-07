@@ -88,6 +88,55 @@
 				"$flutter"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Debug Stage 1 - Minimal",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main_debug.dart"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Debug Stage 1 - iOS Device",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main_debug.dart",
+				"-d",
+				"ios"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run Minimal - iOS Device",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main_minimal.dart",
+				"-d",
+				"ios"
+			],
+			"isBackground": true,
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "test"
 		}
 	]
 }

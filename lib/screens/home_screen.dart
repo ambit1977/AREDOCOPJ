@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/item_provider.dart';
 import '../widgets/item_card.dart';
 import 'add_item_screen.dart';
+import 'ai_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,6 +75,18 @@ class _HomeScreenState extends State<HomeScreen>
         title: const Text('持ち物管理'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.science),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AITestScreen(),
+                ),
+              );
+            },
+            tooltip: 'AI機能テスト',
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showVersionInfo(context),
